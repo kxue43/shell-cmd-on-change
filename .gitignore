@@ -1,0 +1,7 @@
+**/__pycache__/**/*
+.venv/**/*
+.tox/**/*
+dist/**/*
+src/*.egg-info/**/*
+.python-version
+/adhoc/
