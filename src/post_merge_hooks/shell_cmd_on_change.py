@@ -44,6 +44,6 @@ def main(argv: Sequence[str] | None = None) -> int:
     rc = subprocess.run(args.command, shell=True).returncode
     print(
         f"{Fore.CYAN}Finished running post-merge hook command "
-        f"{Fore.YELLOW}`{args.command}`{Style.RESET_ALL}"
+        f"`{Fore.YELLOW}{args.command}{Fore.CYAN}`.{Style.RESET_ALL}"
     )
     return rc
