@@ -30,8 +30,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Shell command to run. Must be quoted.",
     )
     args = parser.parse_args(argv)
-    render = message_renderer_factory(HOOK_NAME, [args.command])
-    render_error = message_renderer_factory(HOOK_NAME, [args.command], error=True)
+    render = message_renderer_factory(HOOK_NAME, [args.command, "git pull"])
     latest_commit_sha, second_latest_commit_sha = get_last_pull_commits_sha()
     if latest_commit_sha is None or second_latest_commit_sha is None:
         render(
@@ -57,7 +56,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"Finished running post-merge {HOOK_NAME} hook command `{args.command}`."
         )
         return 0
-    render_error(
+    render(
         f"""
         Error encountered when running post-merge {HOOK_NAME} hook command
         `{args.command}`.
