@@ -4,11 +4,15 @@ import argparse
 import subprocess
 from typing import Sequence
 
-# External
-from colorama import Fore, Style
-
 # Own
-from .utils import watched_files_changed, get_last_pull_commits_sha
+from .utils import (
+    get_last_pull_commits_sha,
+    message_renderer_factory,
+    watched_files_changed,
+)
+
+
+HOOK_NAME = "shell-cmd-on-change"
 
 
 def main(argv: Sequence[str] | None = None) -> int:
@@ -26,24 +30,37 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Shell command to run. Must be quoted.",
     )
     args = parser.parse_args(argv)
+    render = message_renderer_factory(HOOK_NAME, [args.command])
+    render_error = message_renderer_factory(HOOK_NAME, [args.command], error=True)
     latest_commit_sha, second_latest_commit_sha = get_last_pull_commits_sha()
     if latest_commit_sha is None or second_latest_commit_sha is None:
-        print(
-            f"{Fore.CYAN}Found no record of `git pull` in the past. "
-            f"Not running post-merge hook.{Style.RESET_ALL}"
+        render(
+            f"""
+            Found no record of `git pull` in the past.
+            Not running the {HOOK_NAME} hook.
+            """
         )
         return 0
     if not watched_files_changed(
         args.paths, latest_commit_sha, second_latest_commit_sha
     ):
-        print(
-            f"{Fore.CYAN}Watched file(s) did not change after `git pull`. "
-            f"Not running post-merge hook.{Style.RESET_ALL}"
+        render(
+            f"""
+            Watched file(s) did not change after `git pull`.
+            Not running the {HOOK_NAME} hook.
+            """
         )
         return 0
     rc = subprocess.run(args.command, shell=True).returncode
-    print(
-        f"{Fore.CYAN}Finished running post-merge hook command "
-        f"`{Fore.YELLOW}{args.command}{Fore.CYAN}`.{Style.RESET_ALL}"
+    if rc == 0:
+        render(
+            f"Finished running post-merge {HOOK_NAME} hook command `{args.command}`."
+        )
+        return 0
+    render_error(
+        f"""
+        Error encountered when running post-merge {HOOK_NAME} hook command
+        `{args.command}`.
+        """
     )
     return rc

@@ -1,8 +1,10 @@
 # Builtin
 from pathlib import Path, PurePath
-from typing import Optional, Sequence, Set, Tuple
+from textwrap import dedent
+from typing import Callable, Optional, Sequence, Set, Tuple
 
 # External
+from colorama import Fore, Style
 from pygit2 import Diff, Repository
 
 
@@ -39,3 +41,23 @@ def watched_files_changed(
         second_latest_sha, latest_sha
     )
     return not watched_files_set.isdisjoint(changed_files_set)
+
+
+def message_renderer_factory(
+    hook_name: Optional[str] = None,
+    highlights: Optional[Sequence[str]] = None,
+    error: bool = False,
+) -> Callable[[str], None]:
+    def render(message: str) -> None:
+        foreground = Fore.RED if error else Fore.CYAN
+        message = dedent(message).replace("\n", " ")
+        if hook_name:
+            message = message.replace(
+                hook_name, f"{Fore.MAGENTA}{hook_name}{foreground}"
+            )
+        if highlights:
+            for highlight in highlights:
+                message.replace(highlight, f"{Fore.YELLOW}{highlight}{foreground}")
+        print(f"\n{foreground}{message}{Style.RESET_ALL}")
+
+    return render
