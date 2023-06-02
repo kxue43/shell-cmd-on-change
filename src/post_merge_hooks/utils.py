@@ -1,17 +1,12 @@
 # Builtin
+from __future__ import annotations
 from pathlib import Path, PurePath
-import sys
 from textwrap import dedent
-from typing import Callable, Optional, Sequence, Set, Tuple, TypeVar
+from typing import Callable, Iterable, Optional, Sequence, Set, Tuple, TypeVar
 
 # External
 from colorama import Fore, Style
 from pygit2 import Diff, Repository
-
-if sys.version_info.minor == 8:
-    from typing import Iterable
-elif sys.version_info.minor > 8:
-    from collections.abc import Iterable
 
 
 def get_repo() -> Repository:
