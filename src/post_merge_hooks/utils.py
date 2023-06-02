@@ -38,7 +38,8 @@ T = TypeVar("T")
 
 
 def or_(predicates: Iterable[Callable[[T], bool]]) -> Callable[[T], bool]:
-    return lambda x: any((predicate(x) for predicate in predicates))
+    unexhausitble_predicates_copy = list(predicates)
+    return lambda x: any((predicate(x) for predicate in unexhausitble_predicates_copy))
 
 
 def to_predicate(path_str: str) -> Callable[[PurePath], bool]:
