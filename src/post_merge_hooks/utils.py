@@ -34,31 +34,52 @@ def get_changed_files_set_between_commits(
     return changed_files_set
 
 
+class Predicate:
+    _predicate: Callable[[PurePath], bool]
+    sort_key: int
+
+    def __init__(self, path_str: str) -> None:
+        path_str = path_str.strip()
+        if "*" in path_str:
+            self._predicate = lambda x: x.match(path_str)
+            self.sort_key = 2
+            return
+        path = Path(path_str)
+        assert not path.is_absolute()
+        if path.is_dir():
+            self._predicate = lambda x: str(x).startswith(str(path))
+            self.sort_key = 1
+            return
+        if path.is_file():
+            self._predicate = lambda x: x == path
+            self.sort_key = 3
+            return
+        self._predicate = lambda _: False
+        self.sort_key = 4
+
+    def __call__(self, path: PurePath) -> bool:
+        return self._predicate(path)
+
+    @staticmethod
+    def from_path_str(path_str: str) -> Predicate:
+        return Predicate(path_str)
+
+
 T = TypeVar("T")
 
 
 def or_(predicates: Iterable[Callable[[T], bool]]) -> Callable[[T], bool]:
-    unexhausitble_predicates_copy = list(predicates)
+    unexhausitble_predicates_copy = (
+        predicates if isinstance(predicates, list) else list(predicates)
+    )
     return lambda x: any((predicate(x) for predicate in unexhausitble_predicates_copy))
-
-
-def to_predicate(path_str: str) -> Callable[[PurePath], bool]:
-    path_str = path_str.strip()
-    if "*" in path_str:
-        return lambda x: x.match(path_str)
-    path = Path(path_str)
-    assert not path.is_absolute()
-    if path.is_dir():
-        return lambda x: str(x).startswith(str(path))
-    if path.is_file():
-        return lambda x: x == path
-    return lambda _: False
 
 
 def watched_files_changed(
     paths: Iterable[str], latest_sha: str, second_latest_sha: str
 ) -> bool:
-    paths_match = or_(map(to_predicate, paths))
+    predicates = sorted(map(Predicate.from_path_str, paths), key=lambda x: x.sort_key)
+    paths_match = or_(predicates)
     changed_files_set = get_changed_files_set_between_commits(
         second_latest_sha, latest_sha
     )
