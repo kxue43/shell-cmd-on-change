@@ -5,3 +5,4 @@ dist/**/*
 src/*.egg-info/**/*
 .python-version
 /adhoc/
+/.coverage
