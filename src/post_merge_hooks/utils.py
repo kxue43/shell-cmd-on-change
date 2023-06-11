@@ -89,7 +89,7 @@ def watched_files_changed(
 def message_renderer_factory(
     hook_name: Optional[str] = None,
     highlights: Optional[Sequence[str]] = None,
-) -> Callable[[str], None]:
+) -> Callable[[str], None]:  # pragma: no cover
     def render(message: str) -> None:
         message = dedent(message).replace("\n", " ")
         if hook_name:
