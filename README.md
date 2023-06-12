@@ -35,7 +35,10 @@ Typical use cases are:
 
 ## How to use
 
-This repo provides two hooks – `shell-cmd-on-change` and `remind-poetry-install`.
+This repo provides two hooks: `shell-cmd-on-change` and `remind-poetry-install`.
+After creating the right `.pre-commit-config.yaml`, run `pre-commit install -t post-merge` to install the
+`.git/hooks/post-merge` script. The dependencies/environments of the hooks will be installed by
+[pre-commit](https://pre-commit.com/) on the hooks' first use.
 
 ### `shell-cmd-on-change`
 
