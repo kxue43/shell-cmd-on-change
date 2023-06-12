@@ -1,6 +1,6 @@
 - id: shell-cmd-on-change
   name: shell-cmd-on-change
-  description: Run a shell command when certain files change after a git pull.
+  description: Run a shell command when certain files changed after a `git pull`.
   entry: shell-cmd-on-change
   language: python
   pass_filenames: false
@@ -9,9 +9,7 @@
   verbose: true
 - id: remind-poetry-install
   name: remind-poetry-install
-  description: >
-    Remind to run `poetry install` if `pyproject.toml` or `poetry.lock` changed
-    after a git pull.
+  description: Remind to run `poetry install` if `pyproject.toml` or `poetry.lock` changed after a `git pull`.
   entry: remind-poetry-install
   language: python
   pass_filenames: false
