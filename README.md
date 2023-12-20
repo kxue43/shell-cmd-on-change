@@ -88,7 +88,7 @@ To use, put the following item under the `repos` top-level key of `.pre-commit-c
 ```yaml
 repos:
   - repo: https://github.com/kxue43/post-merge-hooks
-    rev: 0.1.0
+    rev: 0.2.0
     hooks:
       - id: remind-poetry-install
         args:
@@ -103,3 +103,20 @@ remind the user to run `poetry install --with=test`, to include the optional dep
 The hook fails when `poetry install` should be run, and passes otherwise. Either way, it doesn't affect any commits
 of the repo.
 
+If `pyproject.toml` and `poetry.lock` lie in the a subdirectory of the project root, pass in the relative path
+of the directory *after* the `--work-dir` argument item. For example:
+
+```yaml
+repos:
+  - repo: https://github.com/kxue43/post-merge-hooks
+    rev: 0.2.0
+    hooks:
+      - id: remind-poetry-install
+        args:
+          - "--work-dir"
+          - "<RELATIVE_PATH>"
+          - "--with=test"
+        stages: [post-merge, manual]
+        always_run: true
+        verbose: truerue
+```

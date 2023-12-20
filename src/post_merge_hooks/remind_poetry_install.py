@@ -1,7 +1,8 @@
 # Builtin
 from __future__ import annotations
 import argparse
-from typing import Sequence
+from pathlib import PurePath
+from typing import List, Optional, Sequence
 
 # Own
 from .utils import (
@@ -13,11 +14,22 @@ from .utils import (
 HOOK_NAME = "remind-poetry-install"
 
 
+def _get_watched_files(work_dir: Optional[str]) -> List[str]:
+    target = ["pyproject.toml", "poetry.lock"]
+    if work_dir is None:
+        return target
+    folder = PurePath(work_dir)
+    if folder.is_absolute():
+        raise Exception("--work-dir must be a relative path.")
+    return [str(folder.joinpath(item)) for item in target]
+
+
 def main(argv: Sequence[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("filenames", nargs="*")
-    _, remainder = parser.parse_known_args(argv)
-    watched_files = ["pyproject.toml", "poetry.lock"]
+    parser.add_argument("--work-dir", type=str, required=False)
+    namespace, remainder = parser.parse_known_args(argv)
+    watched_files = _get_watched_files(namespace.work_dir)
     poetry_command = (
         f"poetry install {' '.join(remainder)}" if remainder else "poetry install"
     )
