@@ -6,17 +6,16 @@ on:
     paths:
       - "src/**.py"
       - "tests/**"
-      - "requirements-dev.txt"
-      - "requirements-test.txt"
+      - "pyproject.toml"
+      - "poetry.lock"
       - "setup.cfg"
   pull_request:
     paths:
       - "src/**.py"
       - "tests/**"
-      - "requirements-dev.txt"
-      - "requirements-test.txt"
+      - "pyproject.toml"
+      - "poetry.lock"
       - "setup.cfg"
-  workflow_call:
   workflow_dispatch:
 jobs:
   unit-test:

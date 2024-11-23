@@ -47,7 +47,7 @@ To use `shell-cmd-on-change`, put the following item under the `repos` top-level
 ```yaml
 repos:
   - repo: https://github.com/kxue43/post-merge-hooks
-    rev: 0.1.0
+    rev: 0.3.0
     hooks:
       - id: shell-cmd-on-change
         name: rebuild-image
@@ -88,7 +88,7 @@ To use, put the following item under the `repos` top-level key of `.pre-commit-c
 ```yaml
 repos:
   - repo: https://github.com/kxue43/post-merge-hooks
-    rev: 0.2.0
+    rev: 0.3.0
     hooks:
       - id: remind-poetry-install
         args:
@@ -109,7 +109,7 @@ of the directory *after* the `--work-dir` argument item. For example:
 ```yaml
 repos:
   - repo: https://github.com/kxue43/post-merge-hooks
-    rev: 0.2.0
+    rev: 0.3.0
     hooks:
       - id: remind-poetry-install
         args:
