@@ -1,15 +1,55 @@
-[build-system]
-requires = [
-    "setuptools>=51",
-    "wheel"
+[tool.poetry]
+name = "post-merge-hooks"
+version = "0.3.0"
+description = "Post-merge hooks to be used by the pre-commit package."
+authors = [
+    "Ke Xue <xueke.kent@gmail.com>",
 ]
-build-backend = "setuptools.build_meta"
+packages = [{ include = "**/*", from = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+
+[tool.poetry.group.required]
+optional = false
+
+[tool.poetry.group.required.dependencies]
+pygit2 = "~1.14.0" # 1.15 has a breaking change for this project.
+colorama = "^0.4.6"
+
+[tool.poetry.group.develop]
+optional = true
+
+[tool.poetry.group.develop.dependencies]
+ipykernel = "^6.27.1"
+
+[tool.poetry.group.linting]
+optional = true
+
+[tool.poetry.group.linting.dependencies]
+flake8 = "7.1.1" # This version must be the same as in `./.pre-commit-config.yaml`.
+black = "24.10.0" # This version must be the same as in `./.pre-commit-config.yaml`.
+mypy = "^1.12.0"
+
+[tool.poetry.group.test]
+optional = false
+
+[tool.poetry.group.test.dependencies]
+pytest = "^8.2.2"
+pytest-mock = "^3.10.0"
+pytest-cov = "^6.0.0"
 
 [tool.black]
 line-length = 88
-target-version = ['py38']
+target-version = ['py311']
 
 [tool.pytest.ini_options]
-testpaths = [
-    "tests"
+testpaths = ["tests"]
+addopts = "-v --cov=src --cov-report=term-missing --cov-config=tox.ini"
+
+[build-system]
+requires = [
+    "setuptools>=65",
+    "wheel"
 ]
+build-backend = "setuptools.build_meta"
