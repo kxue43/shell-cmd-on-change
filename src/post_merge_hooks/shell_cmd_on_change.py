@@ -6,7 +6,10 @@ from typing import Sequence
 
 # Own
 from .utils import (
-    get_last_pull_commits_sha,
+    InvalidCommitHashException,
+    NoHeadRefLogException,
+    WrongHeadRefLogTypeException,
+    get_this_merge_hashes,
     message_renderer_factory,
     watched_files_changed,
 )
@@ -30,18 +33,37 @@ def main(argv: Sequence[str] | None = None) -> int:
         help="Shell command to run. Must be quoted.",
     )
     args = parser.parse_args(argv)
-    render = message_renderer_factory(HOOK_NAME, [args.command, "git pull"])
-    latest_commit_sha, second_latest_commit_sha = get_last_pull_commits_sha()
-    if latest_commit_sha is None or second_latest_commit_sha is None:
+    render = message_renderer_factory(
+        HOOK_NAME, [args.command, "git pull", "git merge", "pre-commit"]
+    )
+    try:
+        latest_commit_hash, second_latest_commit_hash = get_this_merge_hashes()
+    except NoHeadRefLogException as exc:
         render(
             f"""
-            Found no record of `git pull` in the past.
-            Not running the {HOOK_NAME} hook.
+            {exc.message}. Could not decide if the {HOOK_NAME} hook should be executed.
+            Default to no execution.
             """
         )
-        return 0
+        return 1
+    except WrongHeadRefLogTypeException as exc:
+        render(
+            f"""
+            {exc.message}. This is a bug of either `pre-commit` or this hook.
+            Please report it at https://github.com/kxue43/post-merge-hooks/issues.
+            """
+        )
+        return 1
+    except InvalidCommitHashException as exc:
+        render(
+            f"""
+            {exc.message}. This is a bug of this hook.
+            Please report it at https://github.com/kxue43/post-merge-hooks/issues.
+            """
+        )
+        return 1
     if not watched_files_changed(
-        args.paths, latest_commit_sha, second_latest_commit_sha
+        args.paths, latest_commit_hash, second_latest_commit_hash
     ):
         render(
             f"""
@@ -52,14 +74,12 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     rc = subprocess.run(args.command, shell=True).returncode
     if rc == 0:
-        render(
-            f"Finished running post-merge {HOOK_NAME} hook command `{args.command}`."
-        )
+        render(f"Finished running command `{args.command}` for the {HOOK_NAME} hook.")
         return 0
     render(
         f"""
-        Error encountered when running post-merge {HOOK_NAME} hook command
-        `{args.command}`.
+        Error encountered when running command `{args.command}` for the
+        {HOOK_NAME} hook.
         """
     )
     return rc

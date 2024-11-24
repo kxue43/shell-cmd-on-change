@@ -1,32 +1,87 @@
 # Builtin
 from __future__ import annotations
 from pathlib import Path, PurePath
+import re
 from textwrap import dedent
 from typing import Callable, Iterable, Optional, Sequence, Set, Tuple, TypeVar
 
 # External
 from colorama import Fore, Style
-from pygit2 import Diff, Repository
+from pygit2 import Diff, RefLogEntry, Repository
+
+# Own
+from .exceptions import RootException
 
 
 def get_repo() -> Repository:
+    """
+    Get the Git repo located in the current working directory.
+    """
+
     return Repository(str(Path.cwd().joinpath(".git")))
 
 
-def get_last_pull_commits_sha() -> Tuple[Optional[str], Optional[str]]:
+class NoHeadRefLogException(RootException):
+    """
+    HEAD has no reflog entries in the local Git repository.
+    """
+
+    pass
+
+
+class WrongHeadRefLogTypeException(RootException):
+    """
+    The last HEAD reflog item is neither from a `git merge` nor from a `git pull`.
+    """
+
+    pass
+
+
+class InvalidCommitHashException(RootException):
+    """
+    Invalid Git commit SHA-1 hash.
+    """
+
+    pass
+
+
+def is_merge(entry: RefLogEntry) -> bool:
+    msg = entry.message
+    return msg.startswith("pull:") or msg.startswith("merge")
+
+
+SHA1_HASH_REGEX = re.compile(r"^[0-9a-f]{40}$")
+EMPTY_HASH = "0" * 40
+
+
+def is_invalid(hash: str) -> bool:
+    return SHA1_HASH_REGEX.match(hash) is None or hash == EMPTY_HASH
+
+
+def get_this_merge_hashes() -> Tuple[str, str]:
     repo = get_repo()
-    for item in repo.head.log():
-        if item.message.startswith("pull:"):
-            return str(item.oid_new), str(item.oid_old)
-    else:
-        return None, None
+    entry = next(repo.head.log(), None)
+    if entry is None:
+        raise NoHeadRefLogException("Local Git repo has no reflog for HEAD.")
+    if not is_merge(entry):
+        raise WrongHeadRefLogTypeException(
+            """
+            The last HEAD reflog entry is neither from a `git merge`
+            nor from a `git pull`.
+            """
+        )
+    hashes = (str(entry.oid_new), str(entry.oid_old))
+    for hash in hashes:
+        if is_invalid(hash):
+            raise InvalidCommitHashException(f"Got invalid commit hash `{hash}`.")
+    return hashes
 
 
 def get_changed_files_set_between_commits(
-    second_latest_sha: str, latest_sha: str
+    second_latest_hash: str, latest_hash: str
 ) -> Set[PurePath]:
     changed_files_set: Set[PurePath] = set()
-    diff: Diff = get_repo().diff(second_latest_sha, latest_sha)
+    diff: Diff = get_repo().diff(second_latest_hash, latest_hash)
     for patch in diff:
         delta = patch.delta
         changed_files_set.add(PurePath(delta.new_file.path))
@@ -76,12 +131,12 @@ def or_(predicates: Iterable[Callable[[T], bool]]) -> Callable[[T], bool]:
 
 
 def watched_files_changed(
-    paths: Iterable[str], latest_sha: str, second_latest_sha: str
+    paths: Iterable[str], latest_hash: str, second_latest_hash: str
 ) -> bool:
     predicates = sorted(map(Predicate.from_path_str, paths), key=lambda x: x.sort_key)
     paths_match = or_(predicates)
     changed_files_set = get_changed_files_set_between_commits(
-        second_latest_sha, latest_sha
+        second_latest_hash, latest_hash
     )
     return any(map(paths_match, changed_files_set))
 

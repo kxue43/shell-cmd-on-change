@@ -6,7 +6,10 @@ from typing import List, Optional, Sequence
 
 # Own
 from .utils import (
-    get_last_pull_commits_sha,
+    InvalidCommitHashException,
+    NoHeadRefLogException,
+    WrongHeadRefLogTypeException,
+    get_this_merge_hashes,
     message_renderer_factory,
     watched_files_changed,
 )
@@ -36,11 +39,35 @@ def main(argv: Sequence[str] | None = None) -> int:
     render = message_renderer_factory(
         highlights=["git pull", poetry_command, *watched_files]
     )
-    latest_commit_sha, second_latest_commit_sha = get_last_pull_commits_sha()
-    if latest_commit_sha is None or second_latest_commit_sha is None:
-        return 0
+    try:
+        latest_commit_hash, second_latest_commit_hash = get_this_merge_hashes()
+    except NoHeadRefLogException as exc:
+        render(
+            f"""
+            {exc.message}. If `pyproject.toml` and/or `poetry.lock` changed after
+            `git pull` or `git merge`. Please run `{poetry_command}` to update
+            local virtual environment.
+            """
+        )
+        return 1
+    except WrongHeadRefLogTypeException as exc:
+        render(
+            f"""
+            {exc.message}. This is a bug of either `pre-commit` or this hook.
+            Please report it at https://github.com/kxue43/post-merge-hooks/issues.
+            """
+        )
+        return 1
+    except InvalidCommitHashException as exc:
+        render(
+            f"""
+            {exc.message}. This is a bug of this hook.
+            Please report it at https://github.com/kxue43/post-merge-hooks/issues.
+            """
+        )
+        return 1
     if not watched_files_changed(
-        watched_files, latest_commit_sha, second_latest_commit_sha
+        watched_files, latest_commit_hash, second_latest_commit_hash
     ):
         render(
             """
