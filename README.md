@@ -1,7 +1,7 @@
 # post-merge-hooks
 
 This repo implements two "post-merge" Git hooks which help users run a shell command if some specific files changed
-after a `git pull` from the remote.
+after a `git pull` from a remote branch or a `git merge` from a local branch.
 
 ## Introduction
 
@@ -20,18 +20,24 @@ for the "post-merge" stage – after a *successful* `git merge`, hence also afte
 Post-merge hooks only trigger after a *successful* `git merge`, so they usually perform some operations
 *if the merge introduced certain changes*.
 
-The post-merge hooks of this repo follow the same pattern: after an "of-ops" `git pull`, the hooks check
+The post-merge hooks of this repo follow the same pattern: after a `git pull/merge`, the hooks check
 whether the files that they are configured to watch for changed or not; if they do, run a user-supplied shell command.
 
 Typical use cases are:
 
-- In Python projects, if `requirements.txt` or `pyproject.toml`/`poetry.lock` changed after a `git pull`, run
-  `pip install` or `poetry install` to update the local virtual environment.
+- In Python projects, if `requirements.txt` or `pyproject.toml`/`poetry.lock` changed after a `git pull/merge`,
+  run `pip install` or `poetry install` to update the local virtual environment.
 
 - Similarly for JavaScript projects, but watch for `package.json`/`package-lock.json`.
 
 - If a Docker container is used for running unit tests locally, do a `docker build` if its `Dockerfile` changes
-  after a `git pull`.
+  after a `git pull/merge`.
+
+## Installation
+
+This hook relies on the `pygit2` package, which contains C-extension modules. As of 2024-11-23, `pygit2` has build
+issues with Python 3.13 on ARM64 macOS. Therefore version `0.3.0` of this hook pins the required Python interpreter
+version to 3.11. On macOS, Python 3.11 can be installed by `brew install python@3.11`.
 
 ## How to use
 
@@ -68,7 +74,7 @@ glob-style patterns that specify what files the hook should watch for. All paths
 to the project root directory. Patterns must also be acceptable to Python's
 [`pathlib.PurePath.match`](https://docs.python.org/3.8/library/pathlib.html#pathlib.PurePath.match) method.
 After `--command` is a *single*, *quoted* command that should be run if any of the files being watched changes after a
-`git pull`. The command is run *through shell*. The hook passes only when the shell command executes successfully.
+`git pull/merge`. The command is run *through shell*. The hook passes only when the shell command executes successfully.
 
 **Note**: There is a twist in using this hook to update a [poetry](https://python-poetry.org/) virtual environment.
 See the next hook for details.
