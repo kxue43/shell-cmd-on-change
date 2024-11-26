@@ -14,7 +14,7 @@ python = "^3.11" # 3.13 has build issues for pygit2. 3.11 has been verified to w
 optional = false
 
 [tool.poetry.group.required.dependencies]
-pygit2 = "~1.14.0" # 1.15 has a breaking change for this project.
+pygit2 = "^1.16.0"
 colorama = "^0.4.6"
 
 [tool.poetry.group.develop]

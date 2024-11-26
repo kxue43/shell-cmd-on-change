@@ -8,7 +8,7 @@ from tempfile import TemporaryDirectory
 from typing import Iterable
 
 # External
-from pygit2 import clone_repository, Index, init_repository, Signature, Repository
+from pygit2 import Index, Oid, Repository, Signature, clone_repository, init_repository
 import pytest
 from pytest_mock import MockerFixture
 
@@ -18,7 +18,7 @@ from post_merge_hooks.utils import (
     NoHeadRefLogException,
     WrongHeadRefLogTypeException,
     get_changed_files_set_between_commits,
-    get_this_merge_hashes,
+    get_this_merge_commits,
     watched_files_changed,
 )
 
@@ -35,7 +35,8 @@ class GitRepoAgent:
             self._repo = init_repository(str(self.root_dir))
         else:
             self._repo = Repository(str(self.root_dir.joinpath(".git")))
-        self._index = self._repo.index
+        # The following is caused by a bug in pygit2's pyi files.
+        self._index = self._repo.index  # type: ignore[attr-defined]
         self._author = Signature("Ke Xue", "xueke.kent@gmail.com")
 
     def create_file(self, rel_path: str, contents: str) -> None:
@@ -62,8 +63,8 @@ class GitRepoAgent:
             ref, self._author, self._author, message, tree, parents
         )
 
-    def rev_parse(self, revision: str) -> str:
-        return str(self._repo.revparse_single(revision).oid)
+    def rev_parse(self, revision: str) -> Oid:
+        return self._repo.revparse_single(revision).id
 
     @staticmethod
     def clone_repo(remote: Path, local: Path) -> None:
@@ -113,44 +114,44 @@ def local_pull_2nd_commit(
     return local_clone_1st_commit
 
 
-def test_get_this_merge_hashes_wrong_reflog_type(
+def test_get_this_merge_commits_wrong_reflog_type(
     local_clone_1st_commit: Path,
 ) -> None:
     with pytest.raises(WrongHeadRefLogTypeException):
-        get_this_merge_hashes()
+        get_this_merge_commits()
 
 
-def test_get_this_merge_hashes_no_reflog(
+def test_get_this_merge_commits_no_reflog(
     local_clone_1st_commit: Path,
 ) -> None:
     rmtree(local_clone_1st_commit.joinpath(".git/logs"))
     with pytest.raises(NoHeadRefLogException):
-        get_this_merge_hashes()
+        get_this_merge_commits()
 
 
-def test_get_this_merge_hashes_invalid_hashes(
+def test_get_this_merge_commits_invalid_commits(
     local_clone_1st_commit: Path, mocker: MockerFixture
 ) -> None:
     mocker.patch("post_merge_hooks.utils.is_merge").return_value = True
     with pytest.raises(InvalidCommitHashException):
-        get_this_merge_hashes()
+        get_this_merge_commits()
 
 
 @pytest.mark.skipif(not git_available(), reason="`git` is not available from CLI")
-def test_get_this_merge_hashes_after_pull_remote_2nd_commit(
+def test_get_this_merge_commits_after_pull_remote_2nd_commit(
     local_pull_2nd_commit: Path,
 ) -> None:
     agent = GitRepoAgent(local_pull_2nd_commit, init_repo=False)
     expected_last = agent.rev_parse("HEAD")
     expected_second_last = agent.rev_parse("HEAD^1")
-    last, second_last = get_this_merge_hashes()
+    last, second_last = get_this_merge_commits()
     assert last == expected_last
     assert second_last == expected_second_last
 
 
 @pytest.mark.skipif(not git_available(), reason="`git` is not available from CLI")
 def test_get_changed_files_set_between_commits(local_pull_2nd_commit: Path) -> None:
-    last, second_last = get_this_merge_hashes()
+    last, second_last = get_this_merge_commits()
     changed_files_set = get_changed_files_set_between_commits(second_last, last)
     assert changed_files_set == set([PurePath("2.txt"), PurePath("a/1.txt")])
 
@@ -164,5 +165,5 @@ def test_get_changed_files_set_between_commits(local_pull_2nd_commit: Path) -> N
 def test_watched_files_changed(
     local_pull_2nd_commit: Path, dir_name: str, result: bool
 ) -> None:
-    last, second_last = get_this_merge_hashes()
+    last, second_last = get_this_merge_commits()
     assert watched_files_changed([dir_name], last, second_last) == result

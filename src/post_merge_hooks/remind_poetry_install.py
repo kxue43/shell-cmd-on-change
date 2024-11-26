@@ -9,7 +9,7 @@ from .utils import (
     InvalidCommitHashException,
     NoHeadRefLogException,
     WrongHeadRefLogTypeException,
-    get_this_merge_hashes,
+    get_this_merge_commits,
     message_renderer_factory,
     watched_files_changed,
 )
@@ -40,7 +40,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         highlights=["git pull", poetry_command, *watched_files]
     )
     try:
-        latest_commit_hash, second_latest_commit_hash = get_this_merge_hashes()
+        latest_commit, second_latest_commit = get_this_merge_commits()
     except NoHeadRefLogException as exc:
         render(
             f"""
@@ -66,9 +66,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             """
         )
         return 1
-    if not watched_files_changed(
-        watched_files, latest_commit_hash, second_latest_commit_hash
-    ):
+    if not watched_files_changed(watched_files, latest_commit, second_latest_commit):
         render(
             """
             `pyproject.toml` and `poetry.lock` did not change after `git pull`.

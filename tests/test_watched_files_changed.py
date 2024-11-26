@@ -7,12 +7,13 @@ from typing import Iterable, List, Tuple
 from unittest.mock import call, MagicMock
 
 # External
+from pygit2 import Oid
 import pytest
 from pytest_mock import MockerFixture
 from _pytest.fixtures import SubRequest
 
 # Own
-from post_merge_hooks.utils import or_, Predicate, watched_files_changed
+from post_merge_hooks.utils import EMPTY_HASH, Predicate, or_, watched_files_changed
 
 
 def test_or_() -> None:
@@ -103,5 +104,6 @@ def watched_and_changed(
 
 
 def test_watched_files_changed(watched_and_changed: Tuple[List[str], bool]):
+    unused_oid = Oid(hex=EMPTY_HASH)
     watched_paths, changed = watched_and_changed
-    assert watched_files_changed(watched_paths, "abc", "def") == changed
+    assert watched_files_changed(watched_paths, unused_oid, unused_oid) == changed

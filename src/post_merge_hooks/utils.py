@@ -7,7 +7,7 @@ from typing import Callable, Iterable, Optional, Sequence, Set, Tuple, TypeVar
 
 # External
 from colorama import Fore, Style
-from pygit2 import Diff, RefLogEntry, Repository
+from pygit2 import Diff, Oid, RefLogEntry, Repository
 
 # Own
 from .exceptions import RootException
@@ -54,11 +54,11 @@ SHA1_HASH_REGEX = re.compile(r"^[0-9a-f]{40}$")
 EMPTY_HASH = "0" * 40
 
 
-def is_invalid(hash: str) -> bool:
-    return SHA1_HASH_REGEX.match(hash) is None or hash == EMPTY_HASH
+def is_invalid(oid: Oid) -> bool:
+    return SHA1_HASH_REGEX.match(str(oid)) is None or oid == EMPTY_HASH
 
 
-def get_this_merge_hashes() -> Tuple[str, str]:
+def get_this_merge_commits() -> Tuple[Oid, Oid]:
     repo = get_repo()
     entry = next(repo.head.log(), None)
     if entry is None:
@@ -70,18 +70,19 @@ def get_this_merge_hashes() -> Tuple[str, str]:
             nor from a `git pull`.
             """
         )
-    hashes = (str(entry.oid_new), str(entry.oid_old))
-    for hash in hashes:
-        if is_invalid(hash):
-            raise InvalidCommitHashException(f"Got invalid commit hash `{hash}`.")
-    return hashes
+    oids = (entry.oid_new, entry.oid_old)
+    for oid in oids:
+        if is_invalid(oid):
+            raise InvalidCommitHashException(f"Got invalid commit hash `{str(oid)}`.")
+    return oids
 
 
 def get_changed_files_set_between_commits(
-    second_latest_hash: str, latest_hash: str
+    second_latest_commit: Oid, latest_commit: Oid
 ) -> Set[PurePath]:
     changed_files_set: Set[PurePath] = set()
-    diff: Diff = get_repo().diff(second_latest_hash, latest_hash)
+    # The following is caused by a bug in pygit2's pyi files.
+    diff: Diff = get_repo().diff(second_latest_commit, latest_commit)  # type: ignore[attr-defined]
     for patch in diff:
         delta = patch.delta
         changed_files_set.add(PurePath(delta.new_file.path))
@@ -131,12 +132,12 @@ def or_(predicates: Iterable[Callable[[T], bool]]) -> Callable[[T], bool]:
 
 
 def watched_files_changed(
-    paths: Iterable[str], latest_hash: str, second_latest_hash: str
+    paths: Iterable[str], latest_commit: Oid, second_latest_commit: Oid
 ) -> bool:
     predicates = sorted(map(Predicate.from_path_str, paths), key=lambda x: x.sort_key)
     paths_match = or_(predicates)
     changed_files_set = get_changed_files_set_between_commits(
-        second_latest_hash, latest_hash
+        second_latest_commit, latest_commit
     )
     return any(map(paths_match, changed_files_set))
 
