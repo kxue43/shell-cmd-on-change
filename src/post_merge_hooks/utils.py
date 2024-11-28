@@ -83,8 +83,7 @@ def get_changed_files_set_between_commits(
     changed_files_set: Set[PurePath] = set()
     # The following is caused by a bug in pygit2's pyi files.
     diff: Diff = get_repo().diff(second_latest_commit, latest_commit)  # type: ignore[attr-defined]
-    for patch in diff:
-        delta = patch.delta
+    for delta in diff.deltas:
         changed_files_set.add(PurePath(delta.new_file.path))
         changed_files_set.add(PurePath(delta.old_file.path))
     return changed_files_set
