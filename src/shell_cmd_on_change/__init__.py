@@ -50,7 +50,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     except WrongHeadRefLogTypeException as exc:
         render(
             f"""
-            {exc.message}. This is a bug of either `pre-commit` or this hook.
+            {exc.message}. This is a bug of either pre-commit or this hook.
             Please report it at https://github.com/kxue43/post-merge-hooks/issues.
             """
         )
@@ -66,7 +66,7 @@ def main(argv: Sequence[str] | None = None) -> int:
     if not watched_files_changed(args.paths, latest_commit, second_latest_commit):
         render(
             f"""
-            Watched file(s) did not change after `git pull`.
+            Watched file(s) did not change after git pull.
             Not running the {HOOK_NAME} hook.
             """
         )
@@ -83,12 +83,11 @@ def main(argv: Sequence[str] | None = None) -> int:
     env = {key: value for key, value in os.environ.items() if key != "VIRTUAL_ENV"}
     rc = subprocess.run(args.command, env=env, shell=True).returncode
     if rc == 0:
-        render(f"Finished running command `{args.command}` for the {HOOK_NAME} hook.")
+        render(f"Finished running command {args.command} for the {HOOK_NAME} hook.")
         return 0
     render(
         f"""
-        Error encountered when running command `{args.command}` for the
-        {HOOK_NAME} hook.
+        Error encountered when running command {args.command} for the {HOOK_NAME} hook.
         """
     )
     return rc
