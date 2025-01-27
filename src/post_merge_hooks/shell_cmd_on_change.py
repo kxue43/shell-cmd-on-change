@@ -1,6 +1,7 @@
 # Builtin
 from __future__ import annotations
 import argparse
+import os
 import subprocess
 from typing import Sequence
 
@@ -70,7 +71,17 @@ def main(argv: Sequence[str] | None = None) -> int:
             """
         )
         return 0
-    rc = subprocess.run(args.command, shell=True).returncode
+    # When `pre-commit` runs, it sets the env var `VIRTUAL_ENV` for its own process,
+    # indicating that it runs from its own virtual environment. This is innocuous
+    # most of the time. However, when `pre-commit` starts a subprocess such as
+    # `poetry sync` using `subprocess.run()` like below, this `VIRTUAL_ENV` misleads
+    # `poetry` in identifying the target virtual environment – `poetry` targets
+    # the virtual environment of the `pre-commit` hook instead of the one identified
+    # by the `pyproject.toml` file in the CWD. Therefore, to prevent problems like this,
+    # it's better to simply remove this accidentally leaked implementation details
+    # from the subprocess invocation.
+    env = {key: value for key, value in os.environ.items() if key != "VIRTUAL_ENV"}
+    rc = subprocess.run(args.command, env=env, shell=True).returncode
     if rc == 0:
         render(f"Finished running command `{args.command}` for the {HOOK_NAME} hook.")
         return 0
