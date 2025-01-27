@@ -1,10 +1,10 @@
 [project]
-name = "post-merge-hooks"
+name = "shell-cmd-on-change"
 version = "1.0.0"
 authors = [
     { name = "Ke Xue", email = "xueke.kent@gmail.com" },
 ]
-description = "Post-merge hooks to be used by the pre-commit package."
+description = "Post-merge Git hook that runs a shell command only when watched files changed after git pull or git merge."
 classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
@@ -16,7 +16,7 @@ dependencies = [
 ]
 
 [project.scripts]
-shell-cmd-on-change = "post_merge_hooks.shell_cmd_on_change:main"
+shell-cmd-on-change = "shell_cmd_on_change:main"
 
 [build-system]
 requires = [
@@ -33,7 +33,7 @@ include-package-data = true
 where = ["src"]
 
 [tool.setuptools.package-data]
-post_merge_hooks = ["py.typed"]
+shell_cmd_on_change = ["py.typed"]
 
 [tool.poetry]
 packages = [{ include = "**/*", from = "src" }]

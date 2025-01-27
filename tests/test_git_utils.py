@@ -13,7 +13,7 @@ import pytest
 from pytest_mock import MockerFixture
 
 # Own
-from post_merge_hooks.utils import (
+from shell_cmd_on_change.utils import (
     InvalidCommitHashException,
     NoHeadRefLogException,
     WrongHeadRefLogTypeException,
@@ -132,7 +132,7 @@ def test_get_this_merge_commits_no_reflog(
 def test_get_this_merge_commits_invalid_commits(
     local_clone_1st_commit: Path, mocker: MockerFixture
 ) -> None:
-    mocker.patch("post_merge_hooks.utils.is_merge").return_value = True
+    mocker.patch("shell_cmd_on_change.utils.is_merge").return_value = True
     with pytest.raises(InvalidCommitHashException):
         get_this_merge_commits()
 
