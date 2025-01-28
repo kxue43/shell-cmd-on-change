@@ -1,21 +1,45 @@
-[tool.poetry]
-name = "post-merge-hooks"
-version = "0.3.0"
-description = "Post-merge hooks to be used by the pre-commit package."
+[project]
+name = "shell-cmd-on-change"
+version = "1.0.0"
 authors = [
-    "Ke Xue <xueke.kent@gmail.com>",
+    { name = "Ke Xue", email = "xueke.kent@gmail.com" },
 ]
+description = "Post-merge Git hook that runs a shell command only when watched files changed after git pull or git merge."
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "Operating System :: OS Independent",
+]
+requires-python = "~=3.11"
+dependencies = [
+    "pygit2==1.16.0",
+    "colorama==0.4.6"
+]
+
+[project.scripts]
+shell-cmd-on-change = "shell_cmd_on_change:main"
+
+[build-system]
+requires = [
+    "setuptools>=65",
+    "wheel"
+]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+zip-safe = false
+include-package-data = true
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+shell_cmd_on_change = ["py.typed"]
+
+[tool.poetry]
 packages = [{ include = "**/*", from = "src" }]
 
 [tool.poetry.dependencies]
 python = "^3.11" # 3.13 has build issues for pygit2. 3.11 has been verified to work.
-
-[tool.poetry.group.required]
-optional = false
-
-[tool.poetry.group.required.dependencies]
-pygit2 = "^1.16.0"
-colorama = "^0.4.6"
 
 [tool.poetry.group.develop]
 optional = true
@@ -46,10 +70,3 @@ target-version = ['py311']
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 addopts = "-v --cov=src --cov-report=term-missing --cov-config=tox.ini"
-
-[build-system]
-requires = [
-    "setuptools>=65",
-    "wheel"
-]
-build-backend = "setuptools.build_meta"

@@ -13,7 +13,7 @@ from pytest_mock import MockerFixture
 from _pytest.fixtures import SubRequest
 
 # Own
-from post_merge_hooks.utils import EMPTY_HASH, Predicate, or_, watched_files_changed
+from shell_cmd_on_change.utils import EMPTY_HASH, Predicate, or_, watched_files_changed
 
 
 def test_or_() -> None:
@@ -98,7 +98,7 @@ def watched_and_changed(
     request: SubRequest, mocker: MockerFixture
 ) -> Iterable[Tuple[List[str], bool]]:
     mocker.patch(
-        "post_merge_hooks.utils.get_changed_files_set_between_commits"
+        "shell_cmd_on_change.utils.get_changed_files_set_between_commits"
     ).return_value = [PurePath(path_str) for path_str in request.param[1]]
     yield request.param[0], request.param[2]
 
