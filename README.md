@@ -1,59 +1,52 @@
-# post-merge-hooks
+# Shell Command On Change
 
-This repo implements two "post-merge" Git hooks which help users run a shell command if some specific files changed
-after a `git pull` from a remote branch or a `git merge` from a local branch.
+This repo implements a Git hook managed by [pre-commit](https://pre-commit.com).
 
-## Introduction
+The hook runs at the "post-merge" stage – despite the name, [pre-commit](https://pre-commit.com) does support
+post-merge Git hooks.
 
-Normally "Git hooks" are implemented by shell scripts residing in the `.git/hook` folder of a local repository,
-but developers find it unwieldy to manually copy-paste and tweak them from project to project. 
-[pre-commit](https://pre-commit.com/) thus emerged to address this unwieldiness. It takes care of managing the
-software dependencies of Git hooks, and serves as a proxy for their invocations.
+This hook allows users to register a set of watched files and/or folders and a corresponding shell command.
+After a `git pull` from a remote branch or a `git merge` from a local branch, [pre-commit](https://pre-commit.com)
+triggers this hook, which in turn checks if the watched files changed between `HEAD` and its last position
+(i.e. the hook examines the [reflogs](https://git-scm.com/docs/git-reflog) of `HEAD`).
+If there is change, the hook executes the shell command in a subprocess.
 
-As the name suggests, [pre-commit](https://pre-commit.com/) is mainly used for running "pre-commit" hooks, which
-are usually language linters that check code before a *local* Git commit is made.
-In fact, [pre-commit](https://pre-commit.com/) also supports Git hooks at other *stages*, and this repo uses it
-for the "post-merge" stage – after a *successful* `git merge`, hence also after an "of-ops" `git pull`.
+## What's new?
 
-## What for?
+Running Git hooks at other stages via [pre-commit](https://pre-commit.com) is not a novel idea. For example,
+[poetry](https://python-poetry.org/) provides the
+[poetry-install hook](https://python-poetry.org/docs/pre-commit-hooks/#poetry-install),
+which runs `poetry install --sync` at the post-checkout and post-merge stages.
 
-Post-merge hooks only trigger after a *successful* `git merge`, so they usually perform some operations
-*if the merge introduced certain changes*.
+The point of this hook is that it runs a shell command **conditionally**, which saves some time if the shell command
+takes a while to execute. For example, you probably don't want to run `npm ci` when `package-lock.json` is the same
+after a `git pull`. Nor would you want to do it blindly after every `git checkout` between the `main` branch and
+your feature branch. Broadly speaking, this hook lets you check if your "lock file" actually changed before executing
+a shell command that syncs your local dependencies against the lock file.
 
-The post-merge hooks of this repo follow the same pattern: after a `git pull/merge`, the hooks check
-whether the files that they are configured to watch for changed or not; if they do, run a user-supplied shell command.
+## Exact triggering conditions
 
-Typical use cases are:
+The shell command is executed only when all of the following conditions are met.
 
-- In Python projects, if `requirements.txt` or `pyproject.toml`/`poetry.lock` changed after a `git pull/merge`,
-  run `pip install` or `poetry install` to update the local virtual environment.
+- Triggered at the post-merge stage. This hook doesn't allow itself to be triggered at other stages, not even "manual".
+- The message of the last `HEAD` reflog entry starts with `pull:` or `merge`, i.e. the last movement of `HEAD` is due
+  to `git pull` or `git merge`.
+- At least one of the files that changed between `HEAD` and its last position matches a globbing pattern of the watched
+  files and/or folders.
 
-- Similarly for JavaScript projects, but watch for `package.json`/`package-lock.json`.
+## Examples
 
-- If a Docker container is used for running unit tests locally, do a `docker build` if its `Dockerfile` changes
-  after a `git pull/merge`.
+### Rebuild a Docker image when its build context changes
 
-## Installation
-
-This hook relies on the `pygit2` package, which contains C-extension modules. As of 2024-11-23, `pygit2` has build
-issues with Python 3.13 on ARM64 macOS. Therefore version `0.3.0` of this hook pins the required Python interpreter
-version to 3.11. On macOS, Python 3.11 can be installed by `brew install python@3.11`.
-
-## How to use
-
-This repo provides two hooks: `shell-cmd-on-change` and `remind-poetry-install`.
-After creating the right `.pre-commit-config.yaml`, run `pre-commit install -t post-merge` to install the
-`.git/hooks/post-merge` script. The dependencies/environments of the hooks will be installed by
-[pre-commit](https://pre-commit.com/) on the hooks' first use.
-
-### `shell-cmd-on-change`
-
-To use `shell-cmd-on-change`, put the following item under the `repos` top-level key of `.pre-commit-config.yaml`:
+Imagine that you use a locally built Docker image to aid development. The build context of the image is the `docker/`
+folder in your repository. When one developer updates the build context folder and merges the changes into `main`,
+every other developer of the team should rebuild the image (after a `git pull` on `main`) before using it
+for local development again. In this case, use something like below in your `.pre-commit-config.yaml`.
 
 ```yaml
 repos:
-  - repo: https://github.com/kxue43/post-merge-hooks
-    rev: 0.3.0
+  - repo: https://github.com/kxue43/shell-cmd-on-change
+    rev: 1.0.0
     hooks:
       - id: shell-cmd-on-change
         name: rebuild-image
@@ -64,65 +57,78 @@ repos:
           - "docker/configs/*.cfg"
           - "--command"
           - "docker build -t myTag:latest docker"
-        stages: [post-merge, manual]
+        stages: [post-merge]
         always_run: true
         verbose: true
 ```
 
-`args` is what allows the user to configure this hook. After `--paths` are the folder names, file names and/or
-glob-style patterns that specify what files the hook should watch for. All paths and/or patterns must be relative
+`args` is what allows users to configure the hook. After `--paths` are the folder names, file names and/or
+glob-style patterns that specify what should be watched. All paths and/or patterns must be relative
 to the project root directory. Patterns must also be acceptable to Python's
 [`pathlib.PurePath.match`](https://docs.python.org/3.8/library/pathlib.html#pathlib.PurePath.match) method.
-After `--command` is a *single*, *quoted* command that should be run if any of the files being watched changes after a
-`git pull/merge`. The command is run *through shell*. The hook passes only when the shell command executes successfully.
+After `--command` is a *single*, *quoted* command to execute if any of the watched files changes after a
+`git pull` or `git merge`. The command is run *through shell*.
 
-**Note**: There is a twist in using this hook to update a [poetry](https://python-poetry.org/) virtual environment.
-See the next hook for details.
-
-### `remind-poetry-install`
-
-It would seem that using `shell-cmd-on-change` with 
-`args: ["--paths", "pyproject.toml", "poetry.lock", "--command", "poetry install"]` will update a
-[poetry](https://python-poetry.org/) virtual environment on changes to `pyproject.toml`/`poetry.lock`. However,
-this does NOT work. When triggered by this hook, `poetry install` does run and produce the right `stdout` messages, 
-but the virtual environment is not updated. This is probably due to some internals of
-[poetry](https://python-poetry.org/) that the author of this repo cannot figure out. Therefore, the
-`remind-poetry-install` hook is created to *remind* the users to run `poetry install` by themselves.
-
-To use, put the following item under the `repos` top-level key of `.pre-commit-config.yaml`:
+### Run `poetry install --sync` if `poetry.lock` changes
 
 ```yaml
 repos:
-  - repo: https://github.com/kxue43/post-merge-hooks
-    rev: 0.3.0
+  - repo: https://github.com/kxue43/shell-cmd-on-change
+    rev: 1.0.0
     hooks:
-      - id: remind-poetry-install
+      - id: shell-cmd-on-change
+        name: poetry-install
         args:
-          - "--with=test"
-        stages: [post-merge, manual]
+          - "--paths"
+          - "poetry.lock"
+          - "--command"
+          - "poetry install --sync"
+        stages: [post-merge]
         always_run: true
-        verbose: truerue
+        verbose: true
 ```
 
-`args` takes a sequence of additional arguments passed to `poetry install`. For example, the above configuration will
-remind the user to run `poetry install --with=test`, to include the optional dependency group `test` in installation.
-The hook fails when `poetry install` should be run, and passes otherwise. Either way, it doesn't affect any commits
-of the repo.
+With `poetry` 2.0+, use the `poetry sync` command instead of the deprecated `poetry install --sync`.
 
-If `pyproject.toml` and `poetry.lock` lie in the a subdirectory of the project root, pass in the relative path
-of the directory *after* the `--work-dir` argument item. For example:
+### Run `npm ci` if `package-lock.json` changes
+
+Imagine that your project has a `.cdk/` top-level subfolder that contains all of your CDK code, and the rest of
+the repository are all business logic written in maybe another programming language. In this case,
+you want to watch for `.cdk/package-lock.json` and execute `npm ci` from the `.cdk/` folder if the lock file changes.
 
 ```yaml
 repos:
-  - repo: https://github.com/kxue43/post-merge-hooks
-    rev: 0.3.0
+  - repo: https://github.com/kxue43/shell-cmd-on-change
+    rev: 1.0.0
     hooks:
-      - id: remind-poetry-install
+      - id: shell-cmd-on-change
+        name: npm-ci
         args:
-          - "--work-dir"
-          - "<RELATIVE_PATH>"
-          - "--with=test"
-        stages: [post-merge, manual]
+          - "--paths"
+          - ".cdk/package-lock.json"
+          - "--command"
+          - "pushd .cdk && npm ci"
+        stages: [post-merge]
         always_run: true
-        verbose: truerue
+        verbose: true
 ```
+
+## Installation
+
+After crafting a hook configuration entry in your `.pre-commit-config.yaml` like above, don't forget to install
+the post-merge hook script into your local `.git/` folder via the following command.
+
+```bash
+pre-commit install -t post-merge
+```
+
+This hook relies on the [pygit2](https://github.com/libgit2/pygit2) package, which contains C-extension modules.
+Python extension modules are not always available as pre-compiled wheels for the latest Python interpreter minor version.
+Therefore, this hooks always pins the Python interpreter it needs to a specific version in
+[.pre-commit-hooks.yaml](./.pre-commit-hooks.yaml) – the `language_version` key doesn't support range constraint,
+hence the exact version-pinning. Specific Python interpreter versions can be install via [Homebrew](https://brew.sh/)
+on macOS. Below is the version matrix.
+
+| Hook tag | Python interpreter version | Homebrew install command   |
+| :------: | :------------------------: | :------------------------: |
+| 1.0.0    | 3.11                       | `brew install python@3.11` |
