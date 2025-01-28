@@ -9,7 +9,7 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
-requires-python = "~=3.12"
+requires-python = "~=3.13"
 dependencies = [
     "pygit2==1.17.0",
     "colorama==0.4.6"
@@ -39,7 +39,7 @@ shell_cmd_on_change = ["py.typed"]
 packages = [{ include = "**/*", from = "src" }]
 
 [tool.poetry.dependencies]
-python = "^3.12"
+python = "^3.13"
 
 [tool.poetry.group.develop]
 optional = true
@@ -65,7 +65,7 @@ pytest-cov = "^6.0.0"
 
 [tool.black]
 line-length = 88
-target-version = ['py312']
+target-version = ['py313']
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

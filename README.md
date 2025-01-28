@@ -46,7 +46,7 @@ for local development again. In this case, use something like below in your `.pr
 ```yaml
 repos:
   - repo: https://github.com/kxue43/shell-cmd-on-change
-    rev: 1.0.0
+    rev: 1.2.0
     hooks:
       - id: shell-cmd-on-change
         name: rebuild-image
@@ -74,7 +74,7 @@ After `--command` is a *single*, *quoted* command to execute if any of the watch
 ```yaml
 repos:
   - repo: https://github.com/kxue43/shell-cmd-on-change
-    rev: 1.0.0
+    rev: 1.2.0
     hooks:
       - id: shell-cmd-on-change
         name: poetry-install
@@ -99,7 +99,7 @@ you want to watch for `.cdk/package-lock.json` and execute `npm ci` from the `.c
 ```yaml
 repos:
   - repo: https://github.com/kxue43/shell-cmd-on-change
-    rev: 1.0.0
+    rev: 1.2.0
     hooks:
       - id: shell-cmd-on-change
         name: npm-ci
@@ -133,3 +133,4 @@ on macOS. Below is the version matrix.
 | :------: | :------------------------: | :------------------------: |
 | 1.0.0    | 3.11                       | `brew install python@3.11` |
 | 1.1.0    | 3.12                       | `brew install python@3.12` |
+| 1.2.0    | 3.13                       | `brew install python@3.13` |
