@@ -132,3 +132,4 @@ on macOS. Below is the version matrix.
 | Hook tag | Python interpreter version | Homebrew install command   |
 | :------: | :------------------------: | :------------------------: |
 | 1.0.0    | 3.11                       | `brew install python@3.11` |
+| 1.1.0    | 3.12                       | `brew install python@3.12` |

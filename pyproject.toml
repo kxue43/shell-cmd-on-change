@@ -1,6 +1,6 @@
 [project]
 name = "shell-cmd-on-change"
-version = "1.0.0"
+version = "1.1.0"
 authors = [
     { name = "Ke Xue", email = "xueke.kent@gmail.com" },
 ]
@@ -9,9 +9,9 @@ classifiers = [
     "Programming Language :: Python :: 3",
     "Operating System :: OS Independent",
 ]
-requires-python = "~=3.11"
+requires-python = "~=3.12"
 dependencies = [
-    "pygit2==1.16.0",
+    "pygit2==1.17.0",
     "colorama==0.4.6"
 ]
 
@@ -39,7 +39,7 @@ shell_cmd_on_change = ["py.typed"]
 packages = [{ include = "**/*", from = "src" }]
 
 [tool.poetry.dependencies]
-python = "^3.11" # 3.13 has build issues for pygit2. 3.11 has been verified to work.
+python = "^3.12"
 
 [tool.poetry.group.develop]
 optional = true
@@ -65,7 +65,7 @@ pytest-cov = "^6.0.0"
 
 [tool.black]
 line-length = 88
-target-version = ['py311']
+target-version = ['py312']
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
