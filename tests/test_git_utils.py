@@ -8,7 +8,9 @@ from tempfile import TemporaryDirectory
 from typing import Iterable
 
 # External
-from pygit2 import Index, Oid, Repository, Signature, clone_repository, init_repository
+from pygit2 import Oid, Signature, clone_repository, init_repository
+from pygit2.index import Index
+from pygit2.repository import Repository
 import pytest
 from pytest_mock import MockerFixture
 
@@ -32,7 +34,7 @@ class GitRepoAgent:
     def __init__(self, root_dir: Path, init_repo=True) -> None:
         self.root_dir = root_dir
         if init_repo:
-            self._repo = init_repository(str(self.root_dir))
+            self._repo = init_repository(str(self.root_dir))  # type: ignore[assignment]
         else:
             self._repo = Repository(str(self.root_dir.joinpath(".git")))
         # The following is caused by a bug in pygit2's pyi files.

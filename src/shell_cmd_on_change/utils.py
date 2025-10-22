@@ -7,7 +7,8 @@ from typing import Callable, Iterable, Optional, Sequence, Set, Tuple, TypeVar
 
 # External
 from colorama import Fore, Style
-from pygit2 import Diff, Oid, RefLogEntry, Repository
+from pygit2 import Diff, Oid, RefLogEntry
+from pygit2.repository import Repository
 
 # Own
 from .exceptions import RootException
