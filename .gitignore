@@ -7,3 +7,4 @@ src/*.egg-info/**/*
 /adhoc/
 /.coverage
 /poetry.toml
+/adhoc.sh
