@@ -19,9 +19,10 @@ _log_info() {
 }
 
 _parse_args() {
-  local -n out="$1"
+  local -n out1="$1"
+  local -n out2="$2"
 
-  shift 1
+  shift 2
 
   if ! [[ $1 =~ ^-P ]]; then
     _log_error "At least one -P option is required."
@@ -34,7 +35,7 @@ _parse_args() {
   local item
   for item in "$@"; do
     if [[ $item =~ ^-P ]]; then
-      echo "${item#-P}"
+      out1+=("${item#-P}")
 
       idx+=1
     else
@@ -50,7 +51,9 @@ _parse_args() {
     return 1
   fi
 
-  out="$1"
+  # Typical false positive with nameref
+  # shellcheck disable=SC2034
+  out2="$*"
 }
 
 _get_commits() {
@@ -76,7 +79,7 @@ main() {
 
   local command
 
-  if ! mapfile -t paths < <(_parse_args command "$@"); then
+  if ! _parse_args paths command "$@"; then
     _log_error "Invalid hook arguments."
 
     return 1
