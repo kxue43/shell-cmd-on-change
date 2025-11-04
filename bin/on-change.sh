@@ -1,27 +1,40 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-main() {
-  shopt -s extglob
+shopt -s extglob
 
-  local -a paths=()
+_log_error() {
+  if [[ -t 2 ]]; then
+    printf "\033[31m%s\033[0m\n" "$1" >&2
+  else
+    echo "$1" >&2
+  fi
+}
 
-  local -i idx=1
+_log_info() {
+  if [[ -t 1 ]]; then
+    printf "\033[36m%s\033[33m%s\033[36m.\033[0m\n" "$@"
+  else
+    echo "${*}"
+  fi
+}
 
-  if ! [[ ${!idx} =~ ^-p ]]; then
-    printf "\033[31m%s\033[0m\n" "At least one -p option is required."
+_parse_args() {
+  local -n out="$1"
+
+  shift 1
+
+  if ! [[ $1 =~ ^-P ]]; then
+    _log_error "At least one -P option is required."
 
     return 1
   fi
 
-  while ((idx <= $#)); do
-    if [[ ${!idx} == "-p" ]]; then
-      idx+=1
+  local -i idx=1
 
-      paths+=("${!idx}")
-
-      idx+=1
-    elif [[ ${!idx} =~ ^-p[[:space:]] ]]; then
-      paths+=("${!idx##-p+([[:space:]])}")
+  local item
+  for item in "$@"; do
+    if [[ $item =~ ^-P ]]; then
+      echo "${item#-P}"
 
       idx+=1
     else
@@ -31,57 +44,72 @@ main() {
 
   shift $((idx - 1))
 
-  local command="${*}"
-  if [[ $command == "" ]]; then
-    printf "\033[31m%s\033[0m\n" "Command to run should be provided as positional argument(s)."
+  if (($# != 1)); then
+    _log_error "There should be only one positional argument, which sets the command to run on change."
+
+    return 1
+  fi
+
+  out="$1"
+}
+
+_get_commits() {
+  local -n out="$1"
+
+  # False positive with nameref.
+  # shellcheck disable=SC2034
+  if ! mapfile -t out < <(git reflog -2 --format="%H" HEAD) || ((${#commits[@]} != 2)); then
+    _log_error "Unable to obtain the from and to commits of the last HEAD movement."
+
+    return 1
+  fi
+
+  return 0
+}
+
+_get_changed_files() {
+  git diff --name-only "$1" "$2"
+}
+
+main() {
+  local -a paths=()
+
+  local command
+
+  if ! mapfile -t paths < <(_parse_args command "$@"); then
+    _log_error "Invalid hook arguments."
 
     return 1
   fi
 
   local msg
-  if ! msg=$(git reflog -1 --format="%gs" HEAD 2>/dev/null); then
-    printf "\033[31m%s\033[0m\n" "Unable to obtain the last reflog of HEAD." >&2
+  if ! msg=$(git reflog -1 --format="%gs" HEAD); then
+    _log_error "Unable to obtain the last reflog of HEAD."
 
     return 1
   fi
 
   if ! [[ $msg =~ ^pull: ]] && ! [[ $msg =~ ^merge ]]; then
-    printf "\033[31m%s\033[0m\n" "The last HEAD reflog is neither a merge nor a pull." >&2
+    _log_error "The last HEAD reflog is neither a merge nor a pull."
 
     return 1
   fi
 
   local -a commits
-  # Not using mapfile in order to be compatible with Bash v3.
-  # shellcheck disable=SC2207
-  if ! commits=($(git reflog -2 --format="%H" HEAD 2>/dev/null)) || ((${#commits[@]} != 2)); then
-    printf "\033[31m%s\033[0m\n" "Unable to obtain the from and to commits of the last HEAD movement." >&2
-
-    return 1
-  fi
+  _get_commits commits || return 1
 
   local changed_files
-  if ! changed_files=$(git diff --name-only "${commits[1]}" "${commits[0]}" 2>/dev/null); then
-    printf "\033[31m%s\033[0m\n" "Unable to obtain the changed files across the last HEAD movement." >&2
+  if ! changed_files=$(_get_changed_files "${commits[1]}" "${commits[0]}"); then
+    _log_error "Unable to obtain the changed files across the last HEAD movement."
 
     return 1
   fi
-
-  local -a watched_files=()
-
-  local glob
-  for glob in "${paths[@]}"; do
-    # Intentionally want filename expansion.
-    # shellcheck disable=SC2206
-    watched_files+=($glob)
-  done
-
-  local wfile
 
   local found=n
 
-  for wfile in "${watched_files[@]}"; do
-    if grep -qx "$wfile" <<<"$changed_files"; then
+  local path
+  for path in "${paths[@]}"; do
+    if grep -qx "$path" <<<"$changed_files"; then
       found=y
 
       break
@@ -90,16 +118,16 @@ main() {
 
   if [[ $found == "y" ]]; then
     if eval "$command"; then
-      printf "\033[36mFinished running command \033[33m%s\033[36m for the \033[35mshell-cmd-on-change\033[36m hook.\033[0m\n" "$command"
+      _log_info "Finished running command " "$command"
 
       return 0
     else
-      printf "\033[36mErrored when running command \033[33m%s\033[36m for the \033[35mshell-cmd-on-change\033[36m hook.\033[0m\n" "$command"
+      _log_info "Errored when running command " "$command"
 
       return 1
     fi
   else
-    printf "\033[36mWatched file(s) did not change after \033[33m%s\033[36m. Not running the \033[35mshell-cmd-on-change\033[36m hook.\033[0m\n" "git pull"
+    _log_info "Watched file(s) did not change after " "git pull"
 
     return 0
   fi
