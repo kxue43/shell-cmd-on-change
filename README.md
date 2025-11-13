@@ -93,6 +93,3 @@ pushd /usr/local/bin
 sudo ln -s /opt/homebrew/bin/bash
 popd
 ```
-
-If you don't want to install Bash v5, you can use a v1 tag, which points to the older implementation in Python.
-See [v1-README.md](./v1-README.md) for details.
