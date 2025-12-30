@@ -42,7 +42,7 @@ repos:
         name: npm-ci
         args:
           - "-Pcdk/package-lock.json"
-          - "pushd cdk && npm ci"
+          - "npm --prefix ./cdk ci"
         stages: [post-merge]
         always_run: true
         verbose: true
