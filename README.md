@@ -36,7 +36,7 @@ you want to watch for `cdk/package-lock.json` and execute `npm ci` from the `cdk
 ```yaml
 repos:
   - repo: https://github.com/kxue43/shell-cmd-on-change
-    rev: 2.0.0
+    rev: 2.1.0
     hooks:
       - id: shell-cmd-on-change
         name: npm-ci
@@ -60,7 +60,7 @@ There should be only one positional argument, which is the shell command to run 
 ```yaml
 repos:
   - repo: https://github.com/kxue43/shell-cmd-on-change
-    rev: 2.0.0
+    rev: 2.1.0
     hooks:
       - id: shell-cmd-on-change
         name: poetry-install
