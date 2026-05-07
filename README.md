@@ -82,14 +82,3 @@ the post-merge hook script into your local `.git/` folder via the following comm
 ```bash
 pre-commit install -t post-merge
 ```
-
-This hook uses several Bash features introduced in v4. The Bash shell on macOS at `/bin/bash` is locked at `v3.2.57(1)`.
-Therefore, to use this hook, you must install the lastest version Bash by yourself and put it somewhere on `PATH` before `/bin/bash`.
-For example, on ARM64 chip macOS with Homebrew:
-
-```bash
-brew install bash
-pushd /usr/local/bin
-sudo ln -s /opt/homebrew/bin/bash
-popd
-```
