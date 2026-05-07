@@ -18,12 +18,8 @@ _log_info() {
   fi
 }
 
+# Writes to `paths` (array) and `command` (scalar) in the caller's scope.
 _parse_args() {
-  local -n out1="$1"
-  local -n out2="$2"
-
-  shift 2
-
   if ! [[ $1 =~ ^-P ]]; then
     _log_error "At least one -P option is required."
 
@@ -35,7 +31,7 @@ _parse_args() {
   local item
   for item in "$@"; do
     if [[ $item =~ ^-P ]]; then
-      out1+=("${item#-P}")
+      paths+=("${item#-P}")
 
       idx+=1
     else
@@ -51,17 +47,17 @@ _parse_args() {
     return 1
   fi
 
-  # Typical false positive with nameref
-  # shellcheck disable=SC2034
-  out2="$*"
+  command="$*"
 }
 
+# Writes to `commits` (array) in the caller's scope.
 _get_commits() {
-  local -n out="$1"
+  local line
+  while IFS= read -r line; do
+    commits+=("$line")
+  done < <(git reflog -2 --format="%H" HEAD)
 
-  # False positive with nameref.
-  # shellcheck disable=SC2034
-  if ! mapfile -t out < <(git reflog -2 --format="%H" HEAD) || ((${#commits[@]} != 2)); then
+  if ((${#commits[@]} != 2)); then
     _log_error "Unable to obtain the from and to commits of the last HEAD movement."
 
     return 1
@@ -79,7 +75,7 @@ main() {
 
   local command
 
-  if ! _parse_args paths command "$@"; then
+  if ! _parse_args "$@"; then
     _log_error "Invalid hook arguments."
 
     return 1
@@ -99,7 +95,7 @@ main() {
   fi
 
   local -a commits
-  _get_commits commits || return 1
+  _get_commits || return 1
 
   local changed_files
   if ! changed_files=$(_get_changed_files "${commits[1]}" "${commits[0]}"); then
