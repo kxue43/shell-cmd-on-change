@@ -1,0 +1,31 @@
+name: Integration Tests
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  bats-test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        # Test across target major Bash versions
+        bash-version: ["3.2", "4.4", "5.2"]
+
+    container:
+      image: bash:${{ matrix.bash-version }}
+
+    steps:
+      - name: Install Git
+        run: apk add --no-cache git
+
+      - name: Checkout code with submodules
+        uses: actions/checkout@v4
+        with:
+          # This ensures all your BATS submodules are cloned automatically
+          submodules: recursive
+
+      - name: Run BATS Tests
+        run: BATS_FILE_EXTENSION=sh ./test/bats/bin/bats test/
