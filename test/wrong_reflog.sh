@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # shellcheck disable=SC2154
 
+bats_require_minimum_version 1.5.0
+
 load "test_helper/bats-support/load"
 load "test_helper/bats-assert/load"
 
@@ -25,16 +27,18 @@ setup() {
   cd "$BATS_FILE_TMPDIR/local" || return 1
 }
 
-reflog_type_is_not_pull_or_merge() { #@test
-  # last HEAD movement is not from `git pull` or `git merge`, should fail
-  run bash "$SCRIPT" -P1.txt "echo hello"
+reflog_type_is_clone() { #@test
+  # last HEAD movement is a clone, should fail
+  run --separate-stderr bash "$SCRIPT" -P1.txt "echo hello"
   assert_failure
+  assert_stderr --partial "The last HEAD reflog is neither a merge nor a pull."
 }
 
 reflog_type_is_branch_creation() { #@test
   git checkout -b new-branch
 
   # last HEAD movement is a branch creation, should fail
-  run bash "$SCRIPT" -P1.txt "echo hello"
+  run --separate-stderr bash "$SCRIPT" -P1.txt "echo hello"
   assert_failure
+  assert_stderr --partial "The last HEAD reflog is neither a merge nor a pull."
 }
