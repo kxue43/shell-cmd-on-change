@@ -108,7 +108,7 @@ main() {
 
   local path
   for path in "${paths[@]}"; do
-    if grep -qx "$path" <<<"$changed_files"; then
+    if grep -qxF "$path" <<<"$changed_files"; then
       found=y
 
       break
